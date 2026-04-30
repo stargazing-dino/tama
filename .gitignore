@@ -1,2 +1,17 @@
 /target
 /Cargo.lock
+
+# KiCad
+*-backups/
+*.kicad_pro-bak
+*.kicad_sch-bak
+*.kicad_pcb-bak
+*.kicad_prl
+*.net
+*.bak
+fp-info-cache
+_autosave-*
+~*.lck
+temp-freerouting.dsn
+hardware/production/
+.history/

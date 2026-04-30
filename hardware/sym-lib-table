@@ -1,0 +1,5 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "tama") (type "KiCad") (uri "${KIPRJMOD}/tama.kicad_sym") (options "") (descr ""))
+	(lib (name "Seeed") (type "KiCad") (uri "${KIPRJMOD}/libs/tama.pretty") (options "") (descr ""))
+)
