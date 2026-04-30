@@ -1,6 +1,6 @@
 # tama
 
-![XIAO nRF54L15 pinout](assets/nr_definition.png)
+![XIAO nRF54L15 pinout](hardware/datasheets/xiao-nrf54l15-pinout.png)
 
 ## Build & flash
 
