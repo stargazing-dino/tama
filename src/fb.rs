@@ -14,14 +14,58 @@ impl<'a> Fb<'a> {
         Self { data }
     }
 
-    pub fn clear(&mut self) {
-        unsafe {
-            core::ptr::write_bytes(self.data.as_mut_ptr(), 0, FB_LEN);
+    pub fn fill(&mut self, color: u16) {
+        let hi = (color >> 8) as u8;
+        let lo = color as u8;
+        let mut i = 0;
+        while i < FB_LEN {
+            self.data[i] = hi;
+            self.data[i + 1] = lo;
+            i += 2;
         }
     }
 
     pub fn bytes(&self) -> &[u8] {
         self.data.as_slice()
+    }
+
+    pub fn blit_scaled(
+        &mut self,
+        src: &[u16],
+        src_w: usize,
+        src_h: usize,
+        dx: i32,
+        dy: i32,
+        scale: i32,
+        transparent: u16,
+    ) {
+        for sy in 0..src_h {
+            for sx in 0..src_w {
+                let raw = src[sy * src_w + sx];
+                if raw == transparent {
+                    continue;
+                }
+                let hi = (raw >> 8) as u8;
+                let lo = raw as u8;
+                let x0 = dx + sx as i32 * scale;
+                let y0 = dy + sy as i32 * scale;
+                for py in 0..scale {
+                    let y = y0 + py;
+                    if y < 0 || y >= H as i32 {
+                        continue;
+                    }
+                    for px in 0..scale {
+                        let x = x0 + px;
+                        if x < 0 || x >= W as i32 {
+                            continue;
+                        }
+                        let idx = (y as usize * W + x as usize) * 2;
+                        self.data[idx] = hi;
+                        self.data[idx + 1] = lo;
+                    }
+                }
+            }
+        }
     }
 }
 

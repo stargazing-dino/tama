@@ -4,7 +4,7 @@ use embedded_hal::spi::SpiDevice;
 use mipidsi::Builder;
 use mipidsi::interface::{Interface, SpiInterface};
 use mipidsi::models::GC9A01;
-use mipidsi::options::ColorInversion;
+use mipidsi::options::{ColorInversion, ColorOrder};
 
 use crate::fb::{Fb, H, W};
 
@@ -37,6 +37,7 @@ where
     let mut inner = Builder::new(GC9A01, di)
         .reset_pin(rst)
         .invert_colors(ColorInversion::Inverted)
+        .color_order(ColorOrder::Bgr)
         .init(delay)
         .unwrap();
 
