@@ -6,6 +6,7 @@ use crate::sprites;
 pub enum Button {
     A,
     B,
+    C,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug, defmt::Format)]
@@ -77,6 +78,7 @@ impl Cat {
             let next = match b {
                 Button::A => State::Feed,
                 Button::B => State::Pet,
+                Button::C => State::Paw,
             };
             self.transition(next, now);
         }

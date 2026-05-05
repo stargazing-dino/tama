@@ -11,7 +11,7 @@ mod sprites;
 use defmt_rtt as _;
 use embassy_executor::Spawner;
 use embassy_nrf::bind_interrupts;
-use embassy_nrf::gpio::{Level, Output, OutputDrive};
+use embassy_nrf::gpio::{Input, Level, Output, OutputDrive, Pull};
 use embassy_nrf::peripherals;
 use embassy_nrf::spim::{self, Spim};
 use embassy_time::{Delay, Duration, Instant, Timer};
@@ -20,7 +20,7 @@ use panic_probe as _;
 use static_cell::ConstStaticCell;
 
 use crate::fb::{FB_LEN, Fb, H, W};
-use crate::game::Cat;
+use crate::game::{Button, Cat};
 use crate::sprites::{SPRITE_H, SPRITE_W, TRANSPARENT, WALL_H, WALL_PIXELS, WALL_W};
 
 bind_interrupts!(struct Irqs {
@@ -65,6 +65,14 @@ async fn main(_spawner: Spawner) {
 
     let mut cat = Cat::new(Instant::now());
 
+    // D4=feed, D5=pet, D6=play. Active-low with internal pull-up.
+    let buttons = [
+        (Input::new(p.P1_10, Pull::Up), Button::A),
+        (Input::new(p.P1_11, Pull::Up), Button::B),
+        (Input::new(p.P2_08, Pull::Up), Button::C),
+    ];
+    let mut last_high = [true; 3];
+
     let wall_w_px = WALL_W as i32 * WALL_SCALE;
     // Asset stacks A + C + F + G (ceiling, wall-top, wall, floor). Top of G sits at the cat's nominal feet.
     const FLOOR_SEAM_NATIVE_Y: i32 = 48;
@@ -74,7 +82,15 @@ async fn main(_spawner: Spawner) {
     let wall_x_start = -(n_tiles * wall_w_px - W as i32) / 2;
 
     loop {
-        let pixels = cat.tick(Instant::now(), None);
+        let mut press = None;
+        for (i, (pin, btn)) in buttons.iter().enumerate() {
+            let high = pin.is_high();
+            if last_high[i] && !high && press.is_none() {
+                press = Some(*btn);
+            }
+            last_high[i] = high;
+        }
+        let pixels = cat.tick(Instant::now(), press);
         fb.fill(BG_COLOR);
         let mut wx = wall_x_start;
         while wx < W as i32 {
