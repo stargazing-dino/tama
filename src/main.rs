@@ -21,13 +21,14 @@ use static_cell::ConstStaticCell;
 
 use crate::fb::{FB_LEN, Fb, H, W};
 use crate::game::Cat;
-use crate::sprites::{SPRITE_H, SPRITE_W, TRANSPARENT};
+use crate::sprites::{SPRITE_H, SPRITE_W, TRANSPARENT, WALL_H, WALL_PIXELS, WALL_W};
 
 bind_interrupts!(struct Irqs {
     SERIAL00 => spim::InterruptHandler<peripherals::SERIAL00>;
 });
 
 const SCALE: i32 = 6;
+const WALL_SCALE: i32 = 6;
 const TICK_MS: u64 = 50;
 const BG_COLOR: u16 = 0xFEDD;
 
@@ -57,13 +58,37 @@ async fn main(_spawner: Spawner) {
 
     let sprite_px = SPRITE_W as i32 * SCALE;
     let dx = (W as i32 - sprite_px) / 2;
-    let dy = (H as i32 - sprite_px) / 2;
+    let dy_centered = (H as i32 - sprite_px) / 2;
+    // Cat sprite cells have a few empty rows at the bottom; nudge down so feet sit on the floor.
+    const CAT_FOOT_NUDGE: i32 = 4;
+    let dy = dy_centered + CAT_FOOT_NUDGE;
 
     let mut cat = Cat::new(Instant::now());
+
+    let wall_w_px = WALL_W as i32 * WALL_SCALE;
+    // Asset stacks A + C + F + G (ceiling, wall-top, wall, floor). Top of G sits at the cat's nominal feet.
+    const FLOOR_SEAM_NATIVE_Y: i32 = 48;
+    let floor_anchor_y = dy_centered + SPRITE_H as i32 * SCALE;
+    let wall_y = floor_anchor_y - FLOOR_SEAM_NATIVE_Y * WALL_SCALE;
+    let n_tiles = (W as i32 + wall_w_px - 1) / wall_w_px;
+    let wall_x_start = -(n_tiles * wall_w_px - W as i32) / 2;
 
     loop {
         let pixels = cat.tick(Instant::now(), None);
         fb.fill(BG_COLOR);
+        let mut wx = wall_x_start;
+        while wx < W as i32 {
+            fb.blit_scaled(
+                &WALL_PIXELS,
+                WALL_W,
+                WALL_H,
+                wx,
+                wall_y,
+                WALL_SCALE,
+                TRANSPARENT,
+            );
+            wx += wall_w_px;
+        }
         fb.blit_scaled(pixels, SPRITE_W, SPRITE_H, dx, dy, SCALE, TRANSPARENT);
         display.flush(&fb).unwrap();
         Timer::after(Duration::from_millis(TICK_MS)).await;

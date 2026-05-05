@@ -1,6 +1,10 @@
 /target
 /Cargo.lock
 
+# Non-redistributable purchased assets
+/DayOff/
+/assets/themes/
+
 # KiCad
 *-backups/
 *.kicad_pro-bak

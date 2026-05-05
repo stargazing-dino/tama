@@ -6,6 +6,11 @@ use std::path::PathBuf;
 use image::RgbaImage;
 
 const SPRITESHEET: &str = "assets/Cat Sprite Sheet.png";
+const WALL_THEME: &str = "assets/themes/theme09.png";
+// Theme spritesheets pack 6 tiles horizontally as A,C,D,E,F,G (index 0..5).
+// The wall composition stacks A (ceiling), C (wall trim), F (no-baseboard wall), G (floor).
+const WALL_TILE_INDICES: &[u32] = &[0, 1, 4, 5];
+const TILE: u32 = 16;
 
 const CELL: u32 = 32;
 const TRANSPARENT_RGB565: u16 = 0x07E0;
@@ -31,6 +36,7 @@ fn main() {
     println!("cargo:rerun-if-changed=memory.x");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed={SPRITESHEET}");
+    println!("cargo:rerun-if-changed={WALL_THEME}");
 
     let img = image::open(SPRITESHEET)
         .unwrap_or_else(|e| panic!("loading {SPRITESHEET}: {e}"))
@@ -49,7 +55,47 @@ fn main() {
         emit_anim(&mut src, &img, name, *row, *frames);
     }
 
+    let theme = image::open(WALL_THEME)
+        .unwrap_or_else(|e| panic!("loading {WALL_THEME}: {e}"))
+        .to_rgba8();
+    let mut wall = RgbaImage::new(TILE, TILE * WALL_TILE_INDICES.len() as u32);
+    for (slot, &idx) in WALL_TILE_INDICES.iter().enumerate() {
+        let tile = image::imageops::crop_imm(&theme, idx * TILE, 0, TILE, TILE).to_image();
+        image::imageops::overlay(&mut wall, &tile, 0, (slot as i64) * TILE as i64);
+    }
+    emit_image(&mut src, &wall, "WALL");
+
     fs::write(out.join("tama_sprite.rs"), src).unwrap();
+}
+
+fn emit_image(out: &mut String, img: &RgbaImage, name: &str) {
+    let (w, h) = img.dimensions();
+    let pixels = (w * h) as usize;
+    writeln!(out, "pub const {name}_W: usize = {w};").unwrap();
+    writeln!(out, "pub const {name}_H: usize = {h};").unwrap();
+    writeln!(out, "pub static {name}_PIXELS: [u16; {pixels}] = [").unwrap();
+    out.push_str("    ");
+    for y in 0..h {
+        for x in 0..w {
+            let p = img.get_pixel(x, y);
+            let [r, g, b, a] = p.0;
+            let rgb565 = if a < 128 {
+                TRANSPARENT_RGB565
+            } else {
+                let v = (((r as u16) & 0xF8) << 8)
+                    | (((g as u16) & 0xFC) << 3)
+                    | ((b as u16) >> 3);
+                if v == TRANSPARENT_RGB565 {
+                    v.wrapping_add(1)
+                } else {
+                    v
+                }
+            };
+            write!(out, "0x{rgb565:04X}, ").unwrap();
+        }
+        out.push_str("\n    ");
+    }
+    out.push_str("\n];\n\n");
 }
 
 fn emit_anim(out: &mut String, img: &RgbaImage, name: &str, row: u32, frames: u32) {
