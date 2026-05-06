@@ -6,11 +6,16 @@ use std::path::PathBuf;
 use image::RgbaImage;
 
 const SPRITESHEET: &str = "assets/Cat Sprite Sheet.png";
-const WALL_THEME: &str = "assets/themes/theme09.png";
 // Theme spritesheets pack 6 tiles horizontally as A,C,D,E,F,G (index 0..5).
-// The wall composition stacks A (ceiling), C (wall trim), F (no-baseboard wall), G (floor).
+// Each room's wall stacks A (ceiling), C (wall trim), F (no-baseboard wall), G (floor).
 const WALL_TILE_INDICES: &[u32] = &[0, 1, 4, 5];
 const TILE: u32 = 16;
+// (const_name, path). Each emits {NAME}_W / _H / _PIXELS.
+const THEMES: &[(&str, &str)] = &[
+    ("THEME_LIVING", "assets/themes/theme09.png"),
+    ("THEME_KITCHEN", "assets/themes/theme04.png"),
+    ("THEME_BATH", "assets/themes/theme00.png"),
+];
 
 const CELL: u32 = 32;
 const TRANSPARENT_RGB565: u16 = 0x07E0;
@@ -36,7 +41,6 @@ fn main() {
     println!("cargo:rerun-if-changed=memory.x");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed={SPRITESHEET}");
-    println!("cargo:rerun-if-changed={WALL_THEME}");
 
     let img = image::open(SPRITESHEET)
         .unwrap_or_else(|e| panic!("loading {SPRITESHEET}: {e}"))
@@ -55,15 +59,18 @@ fn main() {
         emit_anim(&mut src, &img, name, *row, *frames);
     }
 
-    let theme = image::open(WALL_THEME)
-        .unwrap_or_else(|e| panic!("loading {WALL_THEME}: {e}"))
-        .to_rgba8();
-    let mut wall = RgbaImage::new(TILE, TILE * WALL_TILE_INDICES.len() as u32);
-    for (slot, &idx) in WALL_TILE_INDICES.iter().enumerate() {
-        let tile = image::imageops::crop_imm(&theme, idx * TILE, 0, TILE, TILE).to_image();
-        image::imageops::overlay(&mut wall, &tile, 0, (slot as i64) * TILE as i64);
+    for (name, path) in THEMES {
+        println!("cargo:rerun-if-changed={path}");
+        let theme = image::open(path)
+            .unwrap_or_else(|e| panic!("loading {path}: {e}"))
+            .to_rgba8();
+        let mut wall = RgbaImage::new(TILE, TILE * WALL_TILE_INDICES.len() as u32);
+        for (slot, &idx) in WALL_TILE_INDICES.iter().enumerate() {
+            let tile = image::imageops::crop_imm(&theme, idx * TILE, 0, TILE, TILE).to_image();
+            image::imageops::overlay(&mut wall, &tile, 0, (slot as i64) * TILE as i64);
+        }
+        emit_image(&mut src, &wall, name);
     }
-    emit_image(&mut src, &wall, "WALL");
 
     fs::write(out.join("tama_sprite.rs"), src).unwrap();
 }

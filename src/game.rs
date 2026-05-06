@@ -2,7 +2,7 @@ use embassy_time::{Duration, Instant};
 
 use crate::sprites;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, defmt::Format)]
 pub enum Button {
     A,
     B,
@@ -52,20 +52,29 @@ pub struct Cat {
     state: State,
     entered: Instant,
     last_roll: Instant,
+    last_step: Instant,
     frame: usize,
     last_frame_at: Instant,
     rng: u32,
+    pub world_x: i32,
+    pub facing: i8,
 }
 
+const WALK_STEP_MS: u64 = 50;
+const WALK_PX_PER_STEP: i32 = 1;
+
 impl Cat {
-    pub fn new(now: Instant) -> Self {
+    pub fn new(now: Instant, world_x: i32) -> Self {
         Self {
             state: State::Idle,
             entered: now,
             last_roll: now,
+            last_step: now,
             frame: 0,
             last_frame_at: now,
             rng: (now.as_ticks() as u32) | 1,
+            world_x,
+            facing: 1,
         }
     }
 
@@ -73,6 +82,7 @@ impl Cat {
         &mut self,
         now: Instant,
         btn: Option<Button>,
+        world_w: i32,
     ) -> &'static [u16; sprites::SPRITE_W * sprites::SPRITE_H] {
         if let Some(b) = btn {
             let next = match b {
@@ -97,6 +107,24 @@ impl Cat {
         };
         if let Some(s) = next {
             self.transition(s, now);
+        }
+
+        if matches!(self.state, State::Walk) {
+            while now.saturating_duration_since(self.last_step)
+                >= Duration::from_millis(WALK_STEP_MS)
+            {
+                self.world_x += self.facing as i32 * WALK_PX_PER_STEP;
+                if self.world_x <= 0 {
+                    self.world_x = 0;
+                    self.facing = 1;
+                } else if self.world_x >= world_w - 1 {
+                    self.world_x = world_w - 1;
+                    self.facing = -1;
+                }
+                self.last_step += Duration::from_millis(WALK_STEP_MS);
+            }
+        } else {
+            self.last_step = now;
         }
 
         let def = anim_for(self.state);
@@ -125,10 +153,12 @@ impl Cat {
         }
         self.last_roll = now;
         match self.rand() % 24 {
-            0 => Some(State::Walk),
-            1 => Some(State::Paw),
-            2 => Some(State::Clean),
-            3 => Some(State::Sleep),
+            0 => {
+                self.facing = if self.rand() & 1 == 0 { -1 } else { 1 };
+                Some(State::Walk)
+            }
+            1 => Some(State::Clean),
+            2 => Some(State::Sleep),
             _ => None,
         }
     }

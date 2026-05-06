@@ -5,8 +5,10 @@ mod display;
 mod fb;
 #[allow(dead_code)]
 mod game;
+mod input;
 #[allow(dead_code)]
 mod sprites;
+mod world;
 
 use defmt_rtt as _;
 use embassy_executor::Spawner;
@@ -14,29 +16,32 @@ use embassy_nrf::bind_interrupts;
 use embassy_nrf::gpio::{Input, Level, Output, OutputDrive, Pull};
 use embassy_nrf::peripherals;
 use embassy_nrf::spim::{self, Spim};
+use embassy_futures::select::{Either, select};
 use embassy_time::{Delay, Duration, Instant, Timer};
 use embedded_hal_bus::spi::{ExclusiveDevice, NoDelay};
 use panic_probe as _;
 use static_cell::ConstStaticCell;
 
 use crate::fb::{FB_LEN, Fb, H, W};
-use crate::game::{Button, Cat};
-use crate::sprites::{SPRITE_H, SPRITE_W, TRANSPARENT, WALL_H, WALL_PIXELS, WALL_W};
+use crate::game::Cat;
+use crate::sprites::{SPRITE_H, SPRITE_W, TRANSPARENT};
+use crate::world::WORLD;
 
 bind_interrupts!(struct Irqs {
     SERIAL00 => spim::InterruptHandler<peripherals::SERIAL00>;
 });
 
 const SCALE: i32 = 6;
-const WALL_SCALE: i32 = 6;
 const TICK_MS: u64 = 50;
 const BG_COLOR: u16 = 0xFEDD;
+// Wall stack is A+C+F+G (4 tiles tall, native 64px). Floor seam sits at native y=48.
+const FLOOR_SEAM_NATIVE_Y: i32 = 48;
 
 static FB_STORAGE: ConstStaticCell<[u8; FB_LEN]> = ConstStaticCell::new([0u8; FB_LEN]);
 static SPI_BUF: ConstStaticCell<[u8; 64]> = ConstStaticCell::new([0u8; 64]);
 
 #[embassy_executor::main]
-async fn main(_spawner: Spawner) {
+async fn main(spawner: Spawner) {
     let mut nrf_config = embassy_nrf::config::Config::default();
     nrf_config.clock_speed = embassy_nrf::config::ClockSpeed::CK128;
     let p = embassy_nrf::init(nrf_config);
@@ -57,56 +62,98 @@ async fn main(_spawner: Spawner) {
     let mut fb = Fb::new(FB_STORAGE.take());
 
     let sprite_px = SPRITE_W as i32 * SCALE;
-    let dx = (W as i32 - sprite_px) / 2;
     let dy_centered = (H as i32 - sprite_px) / 2;
     // Cat sprite cells have a few empty rows at the bottom; nudge down so feet sit on the floor.
     const CAT_FOOT_NUDGE: i32 = 4;
-    let dy = dy_centered + CAT_FOOT_NUDGE;
+    let cat_screen_y = dy_centered + CAT_FOOT_NUDGE;
 
-    let mut cat = Cat::new(Instant::now());
+    // Top of the wall art (in screen px). Floor seam aligns with the cat's nominal feet.
+    let floor_anchor_y = dy_centered + SPRITE_H as i32 * SCALE;
+    let wall_screen_y = floor_anchor_y - FLOOR_SEAM_NATIVE_Y * SCALE;
+
+    let world_w = world::world_width();
+    let view_native_w = W as i32 / SCALE;
+    let mut cat = Cat::new(Instant::now(), world_w / 2);
 
     // D4=feed, D5=pet, D6=play. Active-low with internal pull-up.
-    let buttons = [
-        (Input::new(p.P1_10, Pull::Up), Button::A),
-        (Input::new(p.P1_11, Pull::Up), Button::B),
-        (Input::new(p.P2_08, Pull::Up), Button::C),
-    ];
-    let mut last_high = [true; 3];
-
-    let wall_w_px = WALL_W as i32 * WALL_SCALE;
-    // Asset stacks A + C + F + G (ceiling, wall-top, wall, floor). Top of G sits at the cat's nominal feet.
-    const FLOOR_SEAM_NATIVE_Y: i32 = 48;
-    let floor_anchor_y = dy_centered + SPRITE_H as i32 * SCALE;
-    let wall_y = floor_anchor_y - FLOOR_SEAM_NATIVE_Y * WALL_SCALE;
-    let n_tiles = (W as i32 + wall_w_px - 1) / wall_w_px;
-    let wall_x_start = -(n_tiles * wall_w_px - W as i32) / 2;
+    input::spawn(
+        &spawner,
+        Input::new(p.P1_10, Pull::Up),
+        Input::new(p.P1_11, Pull::Up),
+        Input::new(p.P2_08, Pull::Up),
+    );
 
     loop {
-        let mut press = None;
-        for (i, (pin, btn)) in buttons.iter().enumerate() {
-            let high = pin.is_high();
-            if last_high[i] && !high && press.is_none() {
-                press = Some(*btn);
-            }
-            last_high[i] = high;
-        }
-        let pixels = cat.tick(Instant::now(), press);
+        let press = match select(
+            input::EVENTS.receive(),
+            Timer::after(Duration::from_millis(TICK_MS)),
+        )
+        .await
+        {
+            Either::First(b) => Some(b),
+            Either::Second(_) => None,
+        };
+        let pixels = cat.tick(Instant::now(), press, world_w);
+
+        // Camera: keep cat near screen center, clamp to world bounds.
+        let max_cam = (world_w - view_native_w).max(0);
+        let cam_x = (cat.world_x - view_native_w / 2).clamp(0, max_cam);
+
         fb.fill(BG_COLOR);
-        let mut wx = wall_x_start;
-        while wx < W as i32 {
-            fb.blit_scaled(
-                &WALL_PIXELS,
-                WALL_W,
-                WALL_H,
-                wx,
-                wall_y,
-                WALL_SCALE,
-                TRANSPARENT,
-            );
-            wx += wall_w_px;
+
+        // Walk the rooms left-to-right, drawing each visible one's wall tiles + props.
+        let mut room_x0 = 0;
+        for room in WORLD {
+            let room_x1 = room_x0 + room.width;
+            let on_screen = room_x1 > cam_x && room_x0 < cam_x + view_native_w;
+            if on_screen {
+                let theme = room.theme;
+                let tile_w = theme.w as i32;
+                let mut tx = room_x0;
+                while tx < room_x1 {
+                    let screen_x = (tx - cam_x) * SCALE;
+                    fb.blit_scaled(
+                        theme.pixels,
+                        theme.w,
+                        theme.h,
+                        screen_x,
+                        wall_screen_y,
+                        SCALE,
+                        TRANSPARENT,
+                        false,
+                    );
+                    tx += tile_w;
+                }
+                for prop in room.props {
+                    // prop.x is room-local; prop.y is native px down from the top of the wall art.
+                    let screen_x = (room_x0 + prop.x - cam_x) * SCALE;
+                    let screen_y = wall_screen_y + prop.y * SCALE;
+                    fb.blit_scaled(
+                        prop.pixels,
+                        prop.w,
+                        prop.h,
+                        screen_x,
+                        screen_y,
+                        SCALE,
+                        TRANSPARENT,
+                        false,
+                    );
+                }
+            }
+            room_x0 = room_x1;
         }
-        fb.blit_scaled(pixels, SPRITE_W, SPRITE_H, dx, dy, SCALE, TRANSPARENT);
+
+        let cat_screen_x = (cat.world_x - cam_x) * SCALE - sprite_px / 2;
+        fb.blit_scaled(
+            pixels,
+            SPRITE_W,
+            SPRITE_H,
+            cat_screen_x,
+            cat_screen_y,
+            SCALE,
+            TRANSPARENT,
+            cat.facing < 0,
+        );
         display.flush(&fb).unwrap();
-        Timer::after(Duration::from_millis(TICK_MS)).await;
     }
 }

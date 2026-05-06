@@ -13,6 +13,8 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 embassy-executor = { version = "0.10", features = ["platform-cortex-m", "executor-thread", "defmt"] }
 embassy-nrf = { version = "0.10", features = ["nrf54l15-app-s", "time-driver-grtc", "gpiote", "time", "defmt"] }
 embassy-time = { version = "0.5", features = ["defmt", "defmt-timestamp-uptime"] }
+embassy-sync = "0.8"
+embassy-futures = "0.1"
 
 embedded-hal = "1.0"
 embedded-hal-bus = "0.3"

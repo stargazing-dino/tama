@@ -38,10 +38,12 @@ impl<'a> Fb<'a> {
         dy: i32,
         scale: i32,
         transparent: u16,
+        flip_x: bool,
     ) {
         for sy in 0..src_h {
             for sx in 0..src_w {
-                let raw = src[sy * src_w + sx];
+                let read_x = if flip_x { src_w - 1 - sx } else { sx };
+                let raw = src[sy * src_w + read_x];
                 if raw == transparent {
                     continue;
                 }
