@@ -1,7 +1,7 @@
 use crate::fb::Fb;
 use crate::sprites::{
     THEME_BATH_H, THEME_BATH_PIXELS, THEME_BATH_W, THEME_KITCHEN_H, THEME_KITCHEN_PIXELS,
-    THEME_KITCHEN_W, THEME_LIVING_H, THEME_LIVING_PIXELS, THEME_LIVING_W, TRANSPARENT,
+    THEME_KITCHEN_W, THEME_BEDROOM_H, THEME_BEDROOM_PIXELS, THEME_BEDROOM_W, TRANSPARENT,
 };
 
 // World coordinates are in NATIVE pixels (1×). The renderer scales by SCALE.
@@ -26,10 +26,10 @@ pub struct Room {
     pub props: &'static [Prop],
 }
 
-static THEME_LIVING: Theme = Theme {
-    w: THEME_LIVING_W,
-    h: THEME_LIVING_H,
-    pixels: &THEME_LIVING_PIXELS,
+static THEME_BEDROOM: Theme = Theme {
+    w: THEME_BEDROOM_W,
+    h: THEME_BEDROOM_H,
+    pixels: &THEME_BEDROOM_PIXELS,
 };
 static THEME_KITCHEN: Theme = Theme {
     w: THEME_KITCHEN_W,
@@ -43,7 +43,7 @@ static THEME_BATH: Theme = Theme {
 };
 
 pub static WORLD: &[Room] = &[
-    Room { width: 80, theme: &THEME_LIVING, props: &[] },
+    Room { width: 80, theme: &THEME_BEDROOM, props: &[] },
     Room { width: 80, theme: &THEME_KITCHEN, props: &[] },
     Room { width: 80, theme: &THEME_BATH, props: &[] },
 ];
