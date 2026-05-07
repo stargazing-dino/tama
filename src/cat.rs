@@ -1,7 +1,13 @@
 use embassy_time::{Duration, Instant};
 
-use crate::input::Button;
 use crate::sprites;
+
+#[derive(Copy, Clone, Debug, defmt::Format)]
+pub enum Action {
+    Feed,
+    Pet,
+    Play,
+}
 
 #[derive(Copy, Clone, PartialEq, Debug, defmt::Format)]
 enum State {
@@ -75,14 +81,14 @@ impl Cat {
     pub fn tick(
         &mut self,
         now: Instant,
-        btn: Option<Button>,
+        action: Option<Action>,
         world_w: i32,
     ) -> &'static [u16; sprites::SPRITE_W * sprites::SPRITE_H] {
-        if let Some(b) = btn {
-            let next = match b {
-                Button::A => State::Feed,
-                Button::B => State::Pet,
-                Button::C => State::Paw,
+        if let Some(a) = action {
+            let next = match a {
+                Action::Feed => State::Feed,
+                Action::Pet => State::Pet,
+                Action::Play => State::Paw,
             };
             self.transition(next, now);
         }

@@ -23,7 +23,8 @@ use panic_probe as _;
 use static_cell::ConstStaticCell;
 
 use crate::fb::{FB_LEN, Fb, H, W};
-use crate::cat::Cat;
+use crate::cat::{Action, Cat};
+use crate::input::Button;
 use crate::sprites::{SPRITE_H, SPRITE_W, TRANSPARENT};
 
 bind_interrupts!(struct Irqs {
@@ -83,16 +84,18 @@ async fn main(spawner: Spawner) {
     );
 
     loop {
-        let press = match select(
+        let action = match select(
             input::EVENTS.receive(),
             Timer::after(Duration::from_millis(TICK_MS)),
         )
         .await
         {
-            Either::First(b) => Some(b),
+            Either::First(Button::A) => Some(Action::Feed),
+            Either::First(Button::B) => Some(Action::Pet),
+            Either::First(Button::C) => Some(Action::Play),
             Either::Second(_) => None,
         };
-        let pixels = cat.tick(Instant::now(), press, world_w);
+        let pixels = cat.tick(Instant::now(), action, world_w);
 
         // Camera: keep cat near screen center, clamp to world bounds.
         let max_cam = (world_w - view_native_w).max(0);
