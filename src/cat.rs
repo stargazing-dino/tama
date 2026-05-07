@@ -154,7 +154,7 @@ impl Cat {
         self.last_roll = now;
         match self.rand() % 24 {
             0 => {
-                self.facing = if self.rand() & 1 == 0 { -1 } else { 1 };
+                self.facing = if (self.rand() >> 16) & 1 == 0 { -1 } else { 1 };
                 Some(State::Walk)
             }
             1 => Some(State::Clean),
