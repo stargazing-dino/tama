@@ -4,7 +4,7 @@
 mod display;
 mod fb;
 #[allow(dead_code)]
-mod game;
+mod cat;
 mod input;
 #[allow(dead_code)]
 mod sprites;
@@ -23,9 +23,8 @@ use panic_probe as _;
 use static_cell::ConstStaticCell;
 
 use crate::fb::{FB_LEN, Fb, H, W};
-use crate::game::Cat;
+use crate::cat::Cat;
 use crate::sprites::{SPRITE_H, SPRITE_W, TRANSPARENT};
-use crate::world::WORLD;
 
 bind_interrupts!(struct Irqs {
     SERIAL00 => spim::InterruptHandler<peripherals::SERIAL00>;
@@ -100,48 +99,7 @@ async fn main(spawner: Spawner) {
         let cam_x = (cat.world_x - view_native_w / 2).clamp(0, max_cam);
 
         fb.fill(BG_COLOR);
-
-        // Walk the rooms left-to-right, drawing each visible one's wall tiles + props.
-        let mut room_x0 = 0;
-        for room in WORLD {
-            let room_x1 = room_x0 + room.width;
-            let on_screen = room_x1 > cam_x && room_x0 < cam_x + view_native_w;
-            if on_screen {
-                let theme = room.theme;
-                let tile_w = theme.w as i32;
-                let mut tx = room_x0;
-                while tx < room_x1 {
-                    let screen_x = (tx - cam_x) * SCALE;
-                    fb.blit_scaled(
-                        theme.pixels,
-                        theme.w,
-                        theme.h,
-                        screen_x,
-                        wall_screen_y,
-                        SCALE,
-                        TRANSPARENT,
-                        false,
-                    );
-                    tx += tile_w;
-                }
-                for prop in room.props {
-                    // prop.x is room-local; prop.y is native px down from the top of the wall art.
-                    let screen_x = (room_x0 + prop.x - cam_x) * SCALE;
-                    let screen_y = wall_screen_y + prop.y * SCALE;
-                    fb.blit_scaled(
-                        prop.pixels,
-                        prop.w,
-                        prop.h,
-                        screen_x,
-                        screen_y,
-                        SCALE,
-                        TRANSPARENT,
-                        false,
-                    );
-                }
-            }
-            room_x0 = room_x1;
-        }
+        world::draw(&mut fb, cam_x, view_native_w, wall_screen_y, SCALE);
 
         let cat_screen_x = (cat.world_x - cam_x) * SCALE - sprite_px / 2;
         fb.blit_scaled(

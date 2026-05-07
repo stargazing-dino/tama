@@ -1,13 +1,7 @@
 use embassy_time::{Duration, Instant};
 
+use crate::input::Button;
 use crate::sprites;
-
-#[derive(Copy, Clone, Debug, defmt::Format)]
-pub enum Button {
-    A,
-    B,
-    C,
-}
 
 #[derive(Copy, Clone, PartialEq, Debug, defmt::Format)]
 enum State {

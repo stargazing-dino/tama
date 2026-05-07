@@ -4,7 +4,12 @@ use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::channel::Channel;
 use embassy_time::{Duration, Timer};
 
-use crate::game::Button;
+#[derive(Copy, Clone, Debug, defmt::Format)]
+pub enum Button {
+    A,
+    B,
+    C,
+}
 
 pub static EVENTS: Channel<CriticalSectionRawMutex, Button, 4> = Channel::new();
 
