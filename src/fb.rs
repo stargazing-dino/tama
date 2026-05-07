@@ -17,11 +17,9 @@ impl<'a> Fb<'a> {
     pub fn fill(&mut self, color: u16) {
         let hi = (color >> 8) as u8;
         let lo = color as u8;
-        let mut i = 0;
-        while i < FB_LEN {
-            self.data[i] = hi;
-            self.data[i + 1] = lo;
-            i += 2;
+        for chunk in self.data.chunks_exact_mut(2) {
+            chunk[0] = hi;
+            chunk[1] = lo;
         }
     }
 
@@ -40,7 +38,16 @@ impl<'a> Fb<'a> {
         transparent: u16,
         flip_x: bool,
     ) {
+        const ROW_BYTES: usize = W * 2;
         for sy in 0..src_h {
+            let y0 = dy + sy as i32 * scale;
+            let y_start = y0.max(0);
+            let y_end = (y0 + scale).min(H as i32);
+            if y_start >= y_end {
+                continue;
+            }
+            let row_count = (y_end - y_start) as usize;
+
             for sx in 0..src_w {
                 let read_x = if flip_x { src_w - 1 - sx } else { sx };
                 let raw = src[sy * src_w + read_x];
@@ -50,21 +57,20 @@ impl<'a> Fb<'a> {
                 let hi = (raw >> 8) as u8;
                 let lo = raw as u8;
                 let x0 = dx + sx as i32 * scale;
-                let y0 = dy + sy as i32 * scale;
-                for py in 0..scale {
-                    let y = y0 + py;
-                    if y < 0 || y >= H as i32 {
-                        continue;
+                let x_start = x0.max(0);
+                let x_end = (x0 + scale).min(W as i32);
+                if x_start >= x_end {
+                    continue;
+                }
+                let span_bytes = (x_end - x_start) as usize * 2;
+                let mut row_off = y_start as usize * ROW_BYTES + x_start as usize * 2;
+                for _ in 0..row_count {
+                    let dst = &mut self.data[row_off..row_off + span_bytes];
+                    for pair in dst.chunks_exact_mut(2) {
+                        pair[0] = hi;
+                        pair[1] = lo;
                     }
-                    for px in 0..scale {
-                        let x = x0 + px;
-                        if x < 0 || x >= W as i32 {
-                            continue;
-                        }
-                        let idx = (y as usize * W + x as usize) * 2;
-                        self.data[idx] = hi;
-                        self.data[idx + 1] = lo;
-                    }
+                    row_off += ROW_BYTES;
                 }
             }
         }

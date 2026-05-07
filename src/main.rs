@@ -12,12 +12,12 @@ mod world;
 
 use defmt_rtt as _;
 use embassy_executor::Spawner;
+use embassy_futures::yield_now;
 use embassy_nrf::bind_interrupts;
 use embassy_nrf::gpio::{Input, Level, Output, OutputDrive, Pull};
 use embassy_nrf::peripherals;
 use embassy_nrf::spim::{self, Spim};
-use embassy_futures::select::{Either, select};
-use embassy_time::{Delay, Duration, Instant, Timer};
+use embassy_time::{Delay, Instant};
 use embedded_hal_bus::spi::{ExclusiveDevice, NoDelay};
 use panic_probe as _;
 use static_cell::ConstStaticCell;
@@ -32,7 +32,6 @@ bind_interrupts!(struct Irqs {
 });
 
 const SCALE: i32 = 6;
-const TICK_MS: u64 = 50;
 const BG_COLOR: u16 = 0xFEDD;
 // Wall stack is A+C+F+G (4 tiles tall, native 64px). Floor seam sits at native y=48.
 const FLOOR_SEAM_NATIVE_Y: i32 = 48;
@@ -84,16 +83,11 @@ async fn main(spawner: Spawner) {
     );
 
     loop {
-        let action = match select(
-            input::EVENTS.receive(),
-            Timer::after(Duration::from_millis(TICK_MS)),
-        )
-        .await
-        {
-            Either::First(Button::A) => Some(Action::Feed),
-            Either::First(Button::B) => Some(Action::Pet),
-            Either::First(Button::C) => Some(Action::Play),
-            Either::Second(_) => None,
+        let action = match input::EVENTS.try_receive() {
+            Ok(Button::A) => Some(Action::Feed),
+            Ok(Button::B) => Some(Action::Pet),
+            Ok(Button::C) => Some(Action::Play),
+            Err(_) => None,
         };
         let pixels = cat.tick(Instant::now(), action, world_w);
 
@@ -116,5 +110,7 @@ async fn main(spawner: Spawner) {
             cat.facing < 0,
         );
         display.flush(&fb).unwrap();
+
+        yield_now().await;
     }
 }
