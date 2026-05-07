@@ -44,7 +44,6 @@ async fn main(spawner: Spawner) {
     let mut nrf_config = embassy_nrf::config::Config::default();
     nrf_config.clock_speed = embassy_nrf::config::ClockSpeed::CK128;
     let p = embassy_nrf::init(nrf_config);
-    defmt::info!("tama: here, kitty kitty");
 
     let mut spi_config = spim::Config::default();
     spi_config.frequency = spim::Frequency::M32;
@@ -74,7 +73,6 @@ async fn main(spawner: Spawner) {
     let view_native_w = W as i32 / SCALE;
     let mut cat = Cat::new(Instant::now(), world_w / 2);
 
-    // D4=feed, D5=pet, D6=play. Active-low with internal pull-up.
     input::spawn(
         &spawner,
         Input::new(p.P1_10, Pull::Up),
