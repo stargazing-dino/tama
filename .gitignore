@@ -1,9 +1,9 @@
-/target
-/Cargo.lock
+/firmware/target
+/firmware/Cargo.lock
 
 # Non-redistributable purchased assets
 /DayOff/
-/assets/themes/
+/firmware/assets/themes/
 
 # KiCad
 *-backups/
@@ -17,5 +17,5 @@ fp-info-cache
 _autosave-*
 ~*.lck
 temp-freerouting.dsn
-hardware/production/
+kicad/production/
 .history/

@@ -1,6 +1,6 @@
 # nineapt
 
-![XIAO nRF54L15 pinout](hardware/datasheets/xiao-nrf54l15-pinout.png)
+![XIAO nRF54L15 pinout](../kicad/datasheets/xiao-nrf54l15-pinout.png)
 
 ## Build & flash
 
