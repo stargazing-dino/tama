@@ -23,9 +23,9 @@ fn main() {
     println!("cargo:rerun-if-changed=build/props.rs");
 
     let mut src = String::new();
-    cat::emit(&mut src);
-    themes::emit(&mut src);
-    props::emit(&mut src);
+    cat::emit(&mut src, &out);
+    themes::emit(&mut src, &out);
+    props::emit(&mut src, &out);
 
     fs::write(out.join("sprites.rs"), src).unwrap();
 }

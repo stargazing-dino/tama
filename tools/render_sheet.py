@@ -15,10 +15,11 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
+DAYOFF = ROOT.parent / "DayOff"
 SHEETS = {
-    "bedroom": ROOT / "DayOff" / "Objects" / "Bedroom" / "64x64 Bedroom.png",
-    "kitchen": ROOT / "DayOff" / "Objects" / "Kitchen" / "64x64 Kitchen.png",
-    "bath": ROOT / "DayOff" / "Objects" / "Bathroom" / "64x64 Bathroom.png",
+    "bedroom": DAYOFF / "Objects" / "Bedroom" / "64x64 Bedroom.png",
+    "kitchen": DAYOFF / "Objects" / "Kitchen" / "64x64 Kitchen.png",
+    "bath": DAYOFF / "Objects" / "Bathroom" / "64x64 Bathroom.png",
 }
 CELL = 64
 SCALE = 3

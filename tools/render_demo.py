@@ -17,15 +17,16 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
+DAYOFF = ROOT.parent / "DayOff"
 SPRITESHEET = ROOT / "assets" / "Cat Sprite Sheet.png"
 THEMES = {
     "bedroom": ROOT / "assets" / "themes" / "theme09.png",
     "kitchen": ROOT / "assets" / "themes" / "theme10.png",
     "bath": ROOT / "assets" / "themes" / "theme12.png",
 }
-BEDROOM_SHEET = ROOT / "DayOff" / "Objects" / "Bedroom" / "64x64 Bedroom.png"
-KITCHEN_SHEET = ROOT / "DayOff" / "Objects" / "Kitchen" / "64x64 Kitchen.png"
-BATH_SHEET = ROOT / "DayOff" / "Objects" / "Bathroom" / "64x64 Bathroom.png"
+BEDROOM_SHEET = DAYOFF / "Objects" / "Bedroom" / "64x64 Bedroom.png"
+KITCHEN_SHEET = DAYOFF / "Objects" / "Kitchen" / "64x64 Kitchen.png"
+BATH_SHEET = DAYOFF / "Objects" / "Bathroom" / "64x64 Bathroom.png"
 OUT = ROOT / "demo.png"
 
 # Match src/main.rs + build.rs.

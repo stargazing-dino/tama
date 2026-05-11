@@ -1,5 +1,6 @@
 use crate::encode::emit_image;
 use image::{RgbaImage, imageops};
+use std::path::Path;
 
 const CELL: u32 = 64;
 
@@ -75,12 +76,12 @@ const BATH_PROPS: &[(&str, u32, u32)] = &[
 ];
 
 const SHEETS: &[(&str, &[(&str, u32, u32)])] = &[
-    ("DayOff/Objects/Bedroom/64x64 Bedroom.png", BEDROOM_PROPS),
-    ("DayOff/Objects/Kitchen/64x64 Kitchen.png", KITCHEN_PROPS),
-    ("DayOff/Objects/Bathroom/64x64 Bathroom.png", BATH_PROPS),
+    ("../DayOff/Objects/Bedroom/64x64 Bedroom.png", BEDROOM_PROPS),
+    ("../DayOff/Objects/Kitchen/64x64 Kitchen.png", KITCHEN_PROPS),
+    ("../DayOff/Objects/Bathroom/64x64 Bathroom.png", BATH_PROPS),
 ];
 
-pub fn emit(out: &mut String) {
+pub fn emit(out: &mut String, out_dir: &Path) {
     for (path, props) in SHEETS {
         println!("cargo:rerun-if-changed={path}");
         let sheet = image::open(path)
@@ -89,7 +90,7 @@ pub fn emit(out: &mut String) {
         for (name, col, row) in *props {
             let cell = imageops::crop_imm(&sheet, col * CELL, row * CELL, CELL, CELL).to_image();
             let cropped = trim_transparent(&cell);
-            emit_image(out, name, &cropped);
+            emit_image(out, out_dir, name, &cropped);
         }
     }
 }
