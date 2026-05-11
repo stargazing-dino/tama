@@ -1,8 +1,9 @@
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
+use mipidsi::models::{GC9A01, Model};
 
-pub const W: usize = 240;
-pub const H: usize = 240;
+pub const W: usize = GC9A01::FRAMEBUFFER_SIZE.0 as usize;
+pub const H: usize = GC9A01::FRAMEBUFFER_SIZE.1 as usize;
 pub const FB_LEN: usize = W * H * 2;
 
 pub struct Fb<'a> {
