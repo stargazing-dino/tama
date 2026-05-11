@@ -1,9 +1,12 @@
 /firmware/target
 /firmware/Cargo.lock
 
-# Non-redistributable purchased assets
-/DayOff/
-/itch/
+# Non-redistributable purchased assets — folders kept, contents ignored
+/DayOff/*
+!/DayOff/README.md
+/itch/*
+!/itch/README.md
+!/itch/build_emotes.py
 /firmware/assets/themes/
 
 # KiCad
