@@ -27,5 +27,5 @@ fn main() {
     themes::emit(&mut src);
     props::emit(&mut src);
 
-    fs::write(out.join("tama_sprite.rs"), src).unwrap();
+    fs::write(out.join("sprites.rs"), src).unwrap();
 }

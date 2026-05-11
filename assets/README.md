@@ -1,12 +1,12 @@
 # assets
 
-Source art for tama. Everything in here gets turned into bytes at build time —
+Source art for nineapt. Everything in here gets turned into bytes at build time —
 nothing is loaded at runtime, there is no filesystem on the device.
 
 ## Pipeline
 
 `build.rs` reads PNGs from this directory, converts pixels to RGB565, and emits
-Rust `const` arrays into `$OUT_DIR/tama_sprite.rs`. `src/sprites.rs` re-exports
+Rust `const` arrays into `$OUT_DIR/sprites.rs`. `src/sprites.rs` re-exports
 them with `include!`. No PNG decoder ships in the firmware — the bytes are
 already laid out the way the GC9A01 wants them.
 

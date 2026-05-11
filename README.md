@@ -1,4 +1,4 @@
-# tama
+# nineapt
 
 ![XIAO nRF54L15 pinout](hardware/datasheets/xiao-nrf54l15-pinout.png)
 
