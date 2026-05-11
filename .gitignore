@@ -3,6 +3,7 @@
 
 # Non-redistributable purchased assets
 /DayOff/
+/itch/
 /firmware/assets/themes/
 
 # KiCad

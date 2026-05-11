@@ -21,8 +21,20 @@ import pygame
 ROOT = Path(__file__).resolve().parent
 NINEAPT = ROOT.parent / "firmware"
 DAYOFF = ROOT.parent / "DayOff"
+ITCH = ROOT.parent / "itch"
 
 SPRITESHEET = NINEAPT / "assets" / "Cat Sprite Sheet.png"
+EMOTE_SHEET = ITCH / "emotes.png"
+EMOTE_CELL = 24
+EMOTE_FRAMES = 8
+EMOTE_PICK = 4  # show this single frame (middle of the 8)
+EMOTE_ROWS = [
+    "anger", "confused", "crying", "dizzy",
+    "frustrated", "interrobang", "love", "music",
+    "shine", "shock", "shy", "sigh",
+    "sparkle", "speech", "stink", "sweat",
+]
+EMOTE_SHOW = "love"  # which row to render in the preview
 THEMES = {
     "bedroom": NINEAPT / "assets" / "themes" / "theme09.png",
     "kitchen": NINEAPT / "assets" / "themes" / "theme10.png",
@@ -161,6 +173,16 @@ def load_props() -> dict[str, dict[str, pygame.Surface]]:
     return out
 
 
+def load_emote_frames() -> list[pygame.Surface]:
+    sheet = pygame.image.load(str(EMOTE_SHEET)).convert_alpha()
+    row = EMOTE_ROWS.index(EMOTE_SHOW)
+    y = row * EMOTE_CELL
+    return [
+        upscale(sheet.subsurface(pygame.Rect(f * EMOTE_CELL, y, EMOTE_CELL, EMOTE_CELL)).copy())
+        for f in range(EMOTE_FRAMES)
+    ]
+
+
 def load_cat_frames() -> dict[str, list[pygame.Surface]]:
     sheet = pygame.image.load(str(SPRITESHEET)).convert_alpha()
     frames = {}
@@ -283,6 +305,7 @@ def main() -> None:
     walls = load_walls()
     props = load_props()
     CAT_FRAMES.update(load_cat_frames())
+    emote_frames = load_emote_frames()
 
     sprite_px = CELL * SCALE
     dy_centered = (H - sprite_px) // 2
@@ -337,6 +360,8 @@ def main() -> None:
 
         cat_screen_x = (cat.world_x - cam_x) * SCALE - sprite_px // 2
         screen.blit(blit_sprite, (cat_screen_x, cat_screen_y))
+
+        screen.blit(emote_frames[EMOTE_PICK], (cat_screen_x, cat_screen_y))
 
         pygame.display.flip()
         clock.tick(60)
