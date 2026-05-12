@@ -15,7 +15,10 @@ sentinel. Source pixels that happen to encode to that exact value are nudged
 by `+1` so they don't accidentally vanish. If you change the sentinel,
 change it in `build.rs` and `src/fb.rs` together.
 
-## `Cat Sprite Sheet.png`
+## `../../elthen-cats/Cat Sprite Sheet.png`
+
+Lives outside this directory because the artist's license forbids
+redistribution; see `elthen-cats/README.md` for setup.
 
 320×320 grid of 32×32 cells, one animation per row:
 

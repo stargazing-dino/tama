@@ -4,7 +4,7 @@ use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
 
-const SPRITESHEET: &str = "assets/Cat Sprite Sheet.png";
+const SPRITESHEET: &str = "../elthen-cats/Cat Sprite Sheet.png";
 const CELL: u32 = 32;
 
 // (name, row, frame_count)

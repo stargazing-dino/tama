@@ -23,7 +23,7 @@ NINEAPT = ROOT.parent / "firmware"
 DAYOFF = ROOT.parent / "DayOff"
 ITCH = ROOT.parent / "itch"
 
-SPRITESHEET = NINEAPT / "assets" / "Cat Sprite Sheet.png"
+SPRITESHEET = ROOT.parent / "elthen-cats" / "Cat Sprite Sheet.png"
 EMOTE_SHEET = ITCH / "emotes.png"
 EMOTE_CELL = 24
 EMOTE_FRAMES = 8

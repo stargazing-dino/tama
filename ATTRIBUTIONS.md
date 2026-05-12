@@ -5,10 +5,14 @@ this repository. The asset folders are listed in `.gitignore`. To run the
 firmware or pygame preview locally, purchase or download the assets from the
 sources below and place them at the paths indicated.
 
-## Cat sprites — `firmware/assets/Cat Sprite Sheet.png`
+## Cat sprites — `elthen-cats/Cat Sprite Sheet.png`
 
 - **Author**: Elthen
 - **Source**: https://elthen.itch.io/2d-pixel-art-cat-sprites
+- **Terms**:
+  - Personal and commercial use OK
+  - No redistribution of the sprite files (see Elthen's Patreon license)
+  - Credit "Elthen" appreciated
 
 ## Room themes & props — `DayOff/`, `firmware/assets/themes/`
 
